@@ -53,6 +53,7 @@ public class SketchControlsScript : MonoBehaviour {
     SketchOrigin,
     SymmetryPlane,
     SymmetryFour,
+    SphereGroups,
     ViewOnly,
     SaveGallery,
     LightingLdr,
@@ -1208,6 +1209,7 @@ public class SketchControlsScript : MonoBehaviour {
         var next = (cur == SymmetryMode.None) ? SymmetryMode.SinglePlane
           : (cur == SymmetryMode.SinglePlane) ? SymmetryMode.DebugMultiple
           : (cur == SymmetryMode.DebugMultiple) ? SymmetryMode.FourAroundY
+          : (cur == SymmetryMode.FourAroundY) ? SymmetryMode.SphereGroups
           : SymmetryMode.None;
         PointerManager.m_Instance.CurrentSymmetryMode = next;
       } else if (InputManager.m_Instance.GetKeyboardShortcutDown(
@@ -3613,7 +3615,7 @@ public class SketchControlsScript : MonoBehaviour {
       break;
     case GlobalCommands.SymmetryPlane:
       if (PointerManager.m_Instance.CurrentSymmetryMode != SymmetryMode.SinglePlane) {
-        PointerManager.m_Instance.SetSymmetryMode(SymmetryMode.SinglePlane);
+        PointerManager.m_Instance.SetSymmetryMode(SymmetryMode.SphereGroups);  // AJS FIX
         ControllerConsoleScript.m_Instance.AddNewLine("Mirror Enabled");
       } else {
         PointerManager.m_Instance.SetSymmetryMode(SymmetryMode.None);
@@ -4143,6 +4145,7 @@ public class SketchControlsScript : MonoBehaviour {
     case GlobalCommands.StraightEdgeMeterDisplay: return PointerManager.m_Instance.StraightEdgeGuide.IsShowingMeter();
     case GlobalCommands.SymmetryPlane: return PointerManager.m_Instance.CurrentSymmetryMode == SymmetryMode.SinglePlane;
     case GlobalCommands.SymmetryFour: return PointerManager.m_Instance.CurrentSymmetryMode == SymmetryMode.FourAroundY;
+    case GlobalCommands.SphereGroups: return PointerManager.m_Instance.CurrentSymmetryMode == SymmetryMode.SphereGroups;
     case GlobalCommands.AutoOrient: return m_AutoOrientAfterRotation;
     case GlobalCommands.AudioVisualization: return VisualizerManager.m_Instance.VisualsRequested;
     case GlobalCommands.AdvancedPanelsToggle: return m_PanelManager.AdvancedModeActive();

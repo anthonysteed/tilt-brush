@@ -34,16 +34,17 @@ public class PointerManager : MonoBehaviour {
   // ---- Public types
 
   public enum SymmetryMode {
-    None,
-    SinglePlane,
-    FourAroundY,
-    DebugMultiple,
-  }
+      None,
+      SinglePlane,
+      FourAroundY,
+      DebugMultiple,
+      SphereGroups,
+    }
 
-  // Modifying this struct has implications for binary compatibility.
-  // The layout should match the most commonly-seen layout in the binary file.
-  // See SketchMemoryScript.ReadMemory.
-  [StructLayout(LayoutKind.Sequential, Pack=1)]
+    // Modifying this struct has implications for binary compatibility.
+    // The layout should match the most commonly-seen layout in the binary file.
+    // See SketchMemoryScript.ReadMemory.
+    [StructLayout(LayoutKind.Sequential, Pack=1)]
   public struct ControlPoint {
     public Vector3 m_Pos;
     public Quaternion m_Orient;
@@ -381,7 +382,7 @@ public class PointerManager : MonoBehaviour {
         if (m_CurrentSymmetryMode == SymmetryMode.SinglePlane) {
           m_SymmetryWidget.position = Vector3.zero;
           m_SymmetryWidget.rotation = Quaternion.identity;
-        } else if (m_CurrentSymmetryMode == SymmetryMode.FourAroundY) {
+        } else if (m_CurrentSymmetryMode == SymmetryMode.FourAroundY || m_CurrentSymmetryMode == SymmetryMode.SphereGroups) {
           m_SymmetryWidget.position = SketchSurfacePanel.m_Instance.transform.position;
           m_SymmetryWidget.rotation = SketchSurfacePanel.m_Instance.transform.rotation;
         }
@@ -575,8 +576,10 @@ public class PointerManager : MonoBehaviour {
     case SymmetryMode.None: active = 1; break;
     case SymmetryMode.SinglePlane: active = 2; break;
     case SymmetryMode.FourAroundY: active = 4; break;
+    case SymmetryMode.SphereGroups: active = 8; break;
     case SymmetryMode.DebugMultiple: active = DEBUG_MULTIPLE_NUM_POINTERS; break;
     }
+
     int maxUserPointers = m_Pointers.Length;
     if (active > maxUserPointers) {
       throw new System.ArgumentException("Not enough pointers for mode");
@@ -630,7 +633,10 @@ public class PointerManager : MonoBehaviour {
       return m_SymmetryWidgetScript.ReflectionPlane.ReflectPoseKeepHandedness(xfMain);
     }
 
-    case SymmetryMode.FourAroundY: {
+
+
+      case SymmetryMode.FourAroundY: {
+       
       // aboutY is an operator that rotates worldspace objects N degrees around the widget's Y
       TrTransform aboutY; {
         var xfWidget = TrTransform.FromTransform(m_SymmetryWidget);
@@ -642,7 +648,26 @@ public class PointerManager : MonoBehaviour {
       return aboutY * xfMain;
     }
 
-    case SymmetryMode.DebugMultiple: {
+      case SymmetryMode.SphereGroups: {
+        int around = child % 4;
+        int reflect = (int)(child / 2);
+
+        // aboutY is an operator that rotates worldspace objects N degrees around the widget's Y
+        TrTransform aboutY;
+        {
+          var xfWidget = TrTransform.FromTransform(m_SymmetryWidget);
+          float angle = (360f * around) / 4;
+          aboutY = TrTransform.TR(Vector3.zero, Quaternion.AngleAxis(angle, Vector3.up));
+          // convert from widget-local coords to world coords
+          aboutY = aboutY.TransformBy(xfWidget);
+        }
+        if (reflect == 0)
+          return aboutY * xfMain;
+        else
+          return m_SymmetryWidgetScript.ReflectionPlane.ReflectPoseKeepHandedness(aboutY * xfMain);
+      }
+
+      case SymmetryMode.DebugMultiple: {
       var xfLift = TrTransform.T(m_SymmetryDebugMultipleOffset * child);
       return xfLift * xfMain;
     }
@@ -691,6 +716,29 @@ public class PointerManager : MonoBehaviour {
       break;
     }
 
+    case SymmetryMode.SphereGroups: {
+      TrTransform pointer0 = TrTransform.FromTransform(m_MainPointerData.m_Script.transform);
+      // aboutY is an operator that rotates worldspace objects N degrees around the widget's Y
+      TrTransform aboutY; {
+        var xfWidget = TrTransform.FromTransform(m_SymmetryWidget);
+        float angle = 360f / m_NumActivePointers;
+        aboutY = TrTransform.TR(Vector3.zero, Quaternion.AngleAxis(angle, Vector3.up));
+        // convert from widget-local coords to world coords
+        aboutY = xfWidget * aboutY * xfWidget.inverse;
+      }
+
+      Plane plane = m_SymmetryWidgetScript.ReflectionPlane;
+      TrTransform xf1 = plane.ReflectPoseKeepHandedness(xf0);
+      xf1.ToTransform(m_Pointers[1].m_Script.transform);
+
+      TrTransform cur = TrTransform.identity;
+      for (int i = 1; i < m_NumActivePointers; ++i) {
+        cur = aboutY * cur;   // stack another rotation on top
+        var tmp = (cur * pointer0); // Work around 2018.3.x Mono parse bug
+        tmp.ToTransform(m_Pointers[i].m_Script.transform);
+      }
+      break;
+    }
     case SymmetryMode.DebugMultiple: {
       var xf0 = m_Pointers[0].m_Script.transform;
       for (int i = 1; i < m_NumActivePointers; ++i) {

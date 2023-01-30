@@ -92,33 +92,39 @@ public class SymmetryWidget : GrabWidget {
     m_CustomShowHide = true;
   }
 
-  public void SetMode(PointerManager.SymmetryMode rMode) {
-    switch (rMode) {
-    case PointerManager.SymmetryMode.SinglePlane:
-      m_LeftRightMesh.enabled = false;
-      for (int i = 0; i < m_GuideBeams.Length; ++i) {
-        m_GuideBeams[i].m_BeamRenderer.enabled = ((m_GuideBeams[i].m_Direction != BeamDirection.Left) &&
-                                                  (m_GuideBeams[i].m_Direction != BeamDirection.Right));
-      }
-      break;
-    case PointerManager.SymmetryMode.FourAroundY:
-      m_LeftRightMesh.enabled = true;
-      for (int i = 0; i < m_GuideBeams.Length; ++i) {
-        m_GuideBeams[i].m_BeamRenderer.enabled = ((m_GuideBeams[i].m_Direction != BeamDirection.Up) &&
-                                                  (m_GuideBeams[i].m_Direction != BeamDirection.Down));
-      }
-      break;
-    }
-  }
+        public void SetMode(PointerManager.SymmetryMode rMode) {
+            switch (rMode) {
+            case PointerManager.SymmetryMode.SinglePlane:
+                m_LeftRightMesh.enabled = false;
+                for (int i = 0; i < m_GuideBeams.Length; ++i) {
+                    m_GuideBeams[i].m_BeamRenderer.enabled = ((m_GuideBeams[i].m_Direction != BeamDirection.Left) &&
+                                                              (m_GuideBeams[i].m_Direction != BeamDirection.Right));
+                }
+                break;
+            case PointerManager.SymmetryMode.FourAroundY:
+                m_LeftRightMesh.enabled = true;
+                for (int i = 0; i < m_GuideBeams.Length; ++i) {
+                    m_GuideBeams[i].m_BeamRenderer.enabled = ((m_GuideBeams[i].m_Direction != BeamDirection.Up) &&
+                                                              (m_GuideBeams[i].m_Direction != BeamDirection.Down));
+                }
+                break;
+            case PointerManager.SymmetryMode.SphereGroups:
+                m_LeftRightMesh.enabled = true;
+                for (int i = 0; i < m_GuideBeams.Length; ++i) {
+                    m_GuideBeams[i].m_BeamRenderer.enabled = true;
+                }
+                break;
+            }
+        }
 
-  protected override TrTransform GetDesiredTransform(TrTransform xf_GS) {
-    if (SnapEnabled) {
-      return GetSnappedTransform(xf_GS);
-    }
-    return xf_GS;
-  }
+        protected override TrTransform GetDesiredTransform(TrTransform xf_GS) {
+            if (SnapEnabled) {
+                return GetSnappedTransform(xf_GS);
+            }
+            return xf_GS;
+        }
 
-  override protected void OnUpdate() {
+        override protected void OnUpdate() {
     bool moved = m_UserInteracting;
 
     // Drive the top of the mirror towards room-space up, to keep the text readable
